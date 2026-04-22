@@ -1,0 +1,255 @@
+{
+  "project": "Natyam × Fibonacci",
+  "description": "Mapping of Bharatanatyam classical dance elements to the Fibonacci sequence and golden ratio",
+  "phi": 1.6180339887498949,
+  "version": "1.0.0",
+  "poses": [
+    {
+      "fib_n": 1,
+      "fib_val": 1,
+      "name": "Samapadam",
+      "sanskrit": "समपादम्",
+      "transliteration": "Samapadam",
+      "category": "Stance",
+      "description": "Standing upright, feet together — the point of origin. Unity before movement. The seed from which all geometry grows.",
+      "spiral_arc": "Point (origin)",
+      "geometric_mapping": "Point — zero dimension, infinite potential",
+      "angle_ratio": null,
+      "joint_angles_deg": {
+        "hip": 180,
+        "knee": 180,
+        "ankle": 90
+      },
+      "phi_relationship": "Identity — the starting seed of all Fibonacci growth",
+      "nritya_shastra_ref": "Abhinaya Darpana 1.4",
+      "tags": ["stance", "foundation", "stillness", "samapadam"]
+    },
+    {
+      "fib_n": 2,
+      "fib_val": 1,
+      "name": "Ekapadam",
+      "sanskrit": "एकपादम्",
+      "transliteration": "Ekapadam",
+      "category": "Stance",
+      "description": "Standing on one leg — a single axis. The body becomes a vertical line, mirroring the first Fibonacci step where 1 = 1.",
+      "spiral_arc": "1 × 1 square",
+      "geometric_mapping": "Single axis, bilateral symmetry broken",
+      "angle_ratio": "1:1",
+      "joint_angles_deg": {
+        "standing_hip": 180,
+        "standing_knee": 180,
+        "raised_knee": 90
+      },
+      "phi_relationship": "1/1 = 1.0 — base ratio approaching φ",
+      "nritya_shastra_ref": "Natya Shastra Ch.11",
+      "tags": ["balance", "axis", "single-leg", "ekapadam"]
+    },
+    {
+      "fib_n": 3,
+      "fib_val": 2,
+      "name": "Aramandi",
+      "sanskrit": "अर्धमण्डली",
+      "transliteration": "Ardhamandali",
+      "category": "Foundational Posture",
+      "description": "The half-sit — knees bent outward at ~90°, heels together. Two legs form a perfect diamond. The body's center lowers to the second Fibonacci position.",
+      "spiral_arc": "1 × 2 rectangle",
+      "geometric_mapping": "Diamond / rhombus — 4 equal sides, 90° vertex angles at extremities",
+      "angle_ratio": "1:2",
+      "joint_angles_deg": {
+        "knee_bend": 90,
+        "hip_abduction": 90,
+        "ankle_eversion": 45
+      },
+      "phi_relationship": "2/1 = 2.0 — second step toward φ",
+      "body_points": {
+        "top": "crown of head",
+        "left": "left knee",
+        "right": "right knee",
+        "bottom": "joined heels"
+      },
+      "nritya_shastra_ref": "Abhinaya Darpana 1.15",
+      "tags": ["aramandi", "half-sit", "foundation", "diamond", "ardhamandali"]
+    },
+    {
+      "fib_n": 4,
+      "fib_val": 3,
+      "name": "Muzhumandi",
+      "sanskrit": "मुझुमण्डली",
+      "transliteration": "Muzhumandali",
+      "category": "Foundational Posture",
+      "description": "Full squat — maximum depth, thighs parallel to floor. Three key angles (hip, knee, ankle) each located at Fibonacci proportional intervals along the leg.",
+      "spiral_arc": "2 × 3 rectangle",
+      "geometric_mapping": "Triple-angle convergence at golden proportion intervals",
+      "angle_ratio": "2:3",
+      "joint_angles_deg": {
+        "knee_bend": 45,
+        "hip_flexion": 90,
+        "ankle_dorsiflexion": 30
+      },
+      "phi_relationship": "3/2 = 1.5 — converging toward φ",
+      "nritya_shastra_ref": "Natya Shastra Ch.11",
+      "tags": ["full-squat", "depth", "grounding", "muzhumandi"]
+    },
+    {
+      "fib_n": 5,
+      "fib_val": 5,
+      "name": "Mudras — Asamyukta Hasta",
+      "sanskrit": "असंयुक्त हस्त",
+      "transliteration": "Asamyukta Hasta",
+      "category": "Hand Gestures",
+      "description": "Single-hand mudras — 28 total in Abhinaya Darpana. The human hand has 5 fingers; the ratio between phalanx lengths in each finger approximates φ.",
+      "spiral_arc": "3 × 5 rectangle",
+      "geometric_mapping": "5 fingers, φ ratio between proximal:intermediate:distal phalanx lengths",
+      "angle_ratio": "3:5",
+      "phi_in_anatomy": {
+        "distal_phalanx_to_intermediate": 1.618,
+        "intermediate_to_proximal": 1.618,
+        "total_finger_count": 5
+      },
+      "mudra_examples": [
+        { "name": "Pataka", "meaning": "Flag", "fingers": "all extended" },
+        { "name": "Tripataka", "meaning": "Three parts of flag", "fingers": "ring finger bent" },
+        { "name": "Ardhapataka", "meaning": "Half flag", "fingers": "ring + little bent" },
+        { "name": "Kartarimukha", "meaning": "Scissors face", "fingers": "index+middle scissor" },
+        { "name": "Mayura", "meaning": "Peacock", "fingers": "thumb+index+middle pinch" }
+      ],
+      "phi_relationship": "5/3 = 1.667 — very close to φ",
+      "nritya_shastra_ref": "Abhinaya Darpana Ch.4",
+      "tags": ["mudra", "hand", "gesture", "fingers", "asamyukta"]
+    },
+    {
+      "fib_n": 6,
+      "fib_val": 8,
+      "name": "Adi Tala",
+      "sanskrit": "आदि ताल",
+      "transliteration": "Adi Tala",
+      "category": "Rhythm (Tala)",
+      "description": "The most common tala in Bharatanatyam — 8 beats subdivided as 4+2+2. Fib(6) = 8 exactly. The rhythmic cycle maps precisely onto the 6th Fibonacci number.",
+      "spiral_arc": "5 × 8 rectangle",
+      "geometric_mapping": "8-beat cycle with 3-part subdivision (4:2:2 = 2:1:1 ratio)",
+      "angle_ratio": "5:8",
+      "tala_structure": {
+        "total_beats": 8,
+        "subdivisions": [4, 2, 2],
+        "angas": ["laghu", "drutam", "drutam"],
+        "ratio_4_to_2": 2.0,
+        "ratio_approx_phi": true
+      },
+      "phi_relationship": "8/5 = 1.6 — extremely close to φ (1.618)",
+      "nritya_shastra_ref": "Sangita Ratnakara Tala Adhyaya",
+      "tags": ["tala", "rhythm", "8-beat", "adi-tala", "time-cycle"]
+    },
+    {
+      "fib_n": 7,
+      "fib_val": 13,
+      "name": "Adavus",
+      "sanskrit": "अदावु",
+      "transliteration": "Adavu",
+      "category": "Movement Units",
+      "description": "Adavus are the fundamental vocabulary of Bharatanatyam — basic movement units combining feet, arms, and body. Traditional Tanjavur school recognizes 13 foundational adavu groups.",
+      "spiral_arc": "8 × 13 rectangle",
+      "geometric_mapping": "13 adavu groups, each adding logarithmic complexity",
+      "angle_ratio": "8:13",
+      "adavu_groups": [
+        "Tattadavu", "Nattadavu", "Visharu Adavu", "Tatta Metti",
+        "Murka Adavu", "Jati Adavu", "Pakka Adavu", "Ufil Adavu",
+        "Mandi Adavu", "Sarika Adavu", "Korvai Adavu", "Sarukkal",
+        "Guvum Adavu"
+      ],
+      "phi_relationship": "13/8 = 1.625 — extremely close to φ (1.618)",
+      "nritya_shastra_ref": "Natya Shastra Ch.10-12",
+      "tags": ["adavu", "movement", "vocabulary", "13", "footwork"]
+    },
+    {
+      "fib_n": 8,
+      "fib_val": 21,
+      "name": "Navarasas",
+      "sanskrit": "नवरस",
+      "transliteration": "Navarasas",
+      "category": "Emotion (Abhinaya)",
+      "description": "The 9 rasas (emotional essences). In a complete Margam performance, emotional sequences cycle through approximately 21 distinct expressive states across the recital arc.",
+      "spiral_arc": "13 × 21 rectangle",
+      "geometric_mapping": "Spiral of emotional intensity — exponential growth from stillness to full expression",
+      "angle_ratio": "13:21",
+      "rasas": [
+        { "name": "Shringara", "meaning": "Love / Beauty", "color": "green" },
+        { "name": "Hasya", "meaning": "Joy / Humor", "color": "white" },
+        { "name": "Karuna", "meaning": "Compassion / Sorrow", "color": "grey" },
+        { "name": "Raudra", "meaning": "Fury", "color": "red" },
+        { "name": "Vira", "meaning": "Heroism", "color": "saffron" },
+        { "name": "Bhayanaka", "meaning": "Terror", "color": "black" },
+        { "name": "Bibhatsa", "meaning": "Disgust", "color": "blue" },
+        { "name": "Adbhuta", "meaning": "Wonder / Astonishment", "color": "yellow" },
+        { "name": "Shanta", "meaning": "Peace / Serenity", "color": "white-gold" }
+      ],
+      "phi_relationship": "21/13 = 1.6154 — approaching φ asymptotically",
+      "nritya_shastra_ref": "Natya Shastra Ch.6 — Rasa Adhyaya",
+      "tags": ["rasa", "emotion", "abhinaya", "expression", "navarasas"]
+    },
+    {
+      "fib_n": 9,
+      "fib_val": 34,
+      "name": "Varnam",
+      "sanskrit": "वर्णम्",
+      "transliteration": "Varnam",
+      "category": "Composition",
+      "description": "The centerpiece of a Margam recital — the most complex and lengthy piece. A Varnam alternates between nritta (pure dance), nritya (expressive dance) and natya (drama), building ~34 distinct sequences.",
+      "spiral_arc": "21 × 34 rectangle",
+      "geometric_mapping": "Multi-layered spiral: nritta × nritya × natya interweaving",
+      "angle_ratio": "21:34",
+      "varnam_structure": {
+        "sections": ["Pallavi", "Anupallavi", "Muktayiswaram", "Charanam x4", "Ettugada Swarams"],
+        "approximate_sequences": 34,
+        "duration_minutes": "30-45"
+      },
+      "phi_relationship": "34/21 = 1.619 — virtually identical to φ",
+      "nritya_shastra_ref": "Sangita Sampradaya Pradarshini",
+      "tags": ["varnam", "composition", "margam", "centerpiece", "nritta", "nritya"]
+    },
+    {
+      "fib_n": 10,
+      "fib_val": 55,
+      "name": "Margam",
+      "sanskrit": "मार्गम्",
+      "transliteration": "Margam",
+      "category": "Full Performance",
+      "description": "The complete Bharatanatyam recital — from Alarippu through Tillana. The arc of the full performance traces the golden spiral: simple → complex → transcendent.",
+      "spiral_arc": "34 × 55 rectangle",
+      "geometric_mapping": "Complete golden spiral — the full φ^10 revolution",
+      "angle_ratio": "34:55",
+      "margam_order": [
+        { "item": "Alarippu", "meaning": "Blossoming", "fib_correspondence": 1 },
+        { "item": "Jatiswaram", "meaning": "Note-patterns", "fib_correspondence": 2 },
+        { "item": "Shabdam", "meaning": "Word/Sound", "fib_correspondence": 3 },
+        { "item": "Varnam", "meaning": "Centerpiece", "fib_correspondence": 8 },
+        { "item": "Padams", "meaning": "Lyric expressions", "fib_correspondence": 13 },
+        { "item": "Javali", "meaning": "Lyrical love poem", "fib_correspondence": 21 },
+        { "item": "Tillana", "meaning": "Pure rhythmic finale", "fib_correspondence": 34 }
+      ],
+      "phi_relationship": "55/34 = 1.6176 — φ to 4 decimal places",
+      "nritya_shastra_ref": "Complete Natya Shastra + Abhinaya Darpana",
+      "tags": ["margam", "recital", "complete", "performance", "full-recital"]
+    }
+  ],
+  "phi_connections": {
+    "human_body_ratios": {
+      "navel_to_floor_over_total_height": 1.618,
+      "forearm_to_hand": 1.618,
+      "finger_phalanx_ratios": 1.618,
+      "face_width_to_height": 1.618
+    },
+    "dance_geometry": {
+      "aramandi_diamond_diagonals": "ratio approaches φ",
+      "arm_span_to_forearm": 1.618,
+      "adi_tala_8_over_5": 1.6,
+      "consecutive_fib_ratios_converge_to": 1.6180339887
+    }
+  },
+  "sources": [
+    "Natya Shastra — Bharata Muni (2nd century BCE – 2nd century CE)",
+    "Abhinaya Darpana — Nandikesvara",
+    "Sangita Ratnakara — Sarngadeva (13th century)",
+    "The Mirror of Gesture — Coomaraswamy & Duggirala (1917)",
+    "Fibonacci Numbers and the Golden Section — Ron Knott, University of Surrey"
+  ]
+}
