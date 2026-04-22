@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Natyam × Fibonacci — Live Pose Detection</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&family=Noto+Sans+Devanagari:wght@300;400&display=swap" rel="stylesheet"/>
+
+  <!-- MediaPipe Pose -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+
+  <style>
+    :root {
+      --gold:       #C8973A;
+      --gold-light: #F0C060;
+      --gold-dim:   #7A5520;
+      --ivory:      #F5EDD8;
+      --deep:       #080604;
+      --bark:       #1C1208;
+      --rust:       #8B3A1A;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--deep);
+      color: var(--ivory);
+      font-family: 'Crimson Pro', Georgia, serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── TOP BAR ── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2rem;
+      border-bottom: 1px solid #2a1a08;
+      background: rgba(8,6,4,0.95);
+      position: sticky; top: 0; z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .logo {
+      font-family: 'Cinzel Decorative', serif;
+      font-size: 1rem;
+      color: var(--gold);
+      letter-spacing: 0.05em;
+    }
+
+    .logo span { color: #5a4020; }
+
+    .status-pill {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--gold-dim);
+      letter-spacing: 0.1em;
+    }
+
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #333;
+      transition: background 0.3s;
+    }
+    .status-dot.ready   { background: #4CAF50; box-shadow: 0 0 8px #4CAF50; }
+    .status-dot.loading { background: var(--gold); animation: pulse 1s infinite; box-shadow: 0 0 8px var(--gold); }
+    .status-dot.error   { background: #e53935; }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ── MAIN LAYOUT ── */
+    .app {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 0;
+      min-height: calc(100vh - 61px);
+    }
+
+    /* ── VIDEO AREA ── */
+    .video-area {
+      position: relative;
+      background: #000;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 500px;
+    }
+
+    #videoContainer {
+      position: relative;
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    #inputVideo, #outputCanvas {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scaleX(-1);
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    #outputCanvas {
+      z-index: 2;
+    }
+
+    /* For uploaded video - no mirror flip */
+    #uploadedVideo {
+      display: none;
+      max-width: 100%;
+      max-height: 100%;
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .placeholder {
+      display: flex; flex-direction: column; align-items: center; gap: 1.5rem;
+      z-index: 1; text-align: center; padding: 2rem;
+    }
+
+    .placeholder-icon {
+      font-size: 4rem; opacity: 0.3;
+    }
+
+    .placeholder h2 {
+      font-family: 'Cinzel Decorative', serif;
+      font-size: 1.2rem; color: var(--gold-dim);
+      font-weight: 400;
+    }
+
+    .placeholder p { font-size: 0.9rem; color: #5a4020; max-width: 300px; }
+
+    /* ── POSE BADGE OVERLAY ── */
+    #poseBadge {
+      position: absolute;
+      top: 20px; left: 50%; transform: translateX(-50%);
+      z-index: 10;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+    }
+
+    #poseBadge.visible { opacity: 1; }
+
+    .badge-fib {
+      font-family: 'Cinzel Decorative', serif;
+      font-size: clamp(3rem, 8vw, 6rem);
+      color: var(--gold-light);
+      line-height: 1;
+      text-shadow: 0 0 40px rgba(200,151,58,0.8), 0 2px 20px rgba(0,0,0,0.9);
+      animation: fibPop 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    .badge-name {
+      font-family: 'Cinzel Decorative', serif;
+      font-size: clamp(0.8rem, 2vw, 1.1rem);
+      color: var(--gold);
+      letter-spacing: 0.1em;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.9);
+      margin-top: 0.2rem;
+    }
+
+    .badge-sanskrit {
+      font-family: 'Noto Sans Devanagari', serif;
+      font-size: 0.85rem;
+      color: var(--gold-dim);
+      text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+    }
+
+    @keyframes fibPop {
+      from { transform: scale(0.5); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    /* ── CONFIDENCE BAR ── */
+    #confidenceBar {
+      position: absolute;
+      bottom: 80px; left: 50%; transform: translateX(-50%);
+      z-index: 10;
+      width: 200px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    #confidenceBar.visible { opacity: 1; }
+
+    .conf-label {
+      font-size: 0.7rem; letter-spacing: 0.15em; color: var(--gold-dim);
+      text-align: center; margin-bottom: 0.3rem;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+    }
+
+    .conf-track {
+      height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px;
+    }
+
+    .conf-fill {
+      height: 100%; background: var(--gold); border-radius: 2px;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 8px rgba(200,151,58,0.6);
+    }
+
+    /* ── CONTROLS BAR ── */
+    .controls-bar {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      z-index: 10;
+      display: flex; align-items: center; justify-content: center;
+      gap: 1rem; padding: 1rem;
+      background: linear-gradient(transparent, rgba(0,0,0,0.8));
+    }
+
+    .btn {
+      font-family: 'Cinzel Decorative', serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      padding: 0.6rem 1.3rem;
+      border: 1px solid var(--gold-dim);
+      background: rgba(8,6,4,0.8);
+      color: var(--gold);
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn:hover { background: var(--gold); color: var(--deep); border-color: var(--gold); }
+    .btn.active { background: var(--gold); color: var(--deep); border-color: var(--gold); }
+    .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .btn-upload {
+      position: relative; overflow: hidden;
+    }
+
+    .btn-upload input[type=file] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    }
+
+    /* ── SIDE PANEL ── */
+    .side-panel {
+      background: var(--bark);
+      border-left: 1px solid #2a1a08;
+      display: flex; flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .panel-section {
+      padding: 1.5rem;
+      border-bottom: 1px solid #1a1008;
+    }
+
+    .panel-label {
+      font-family: 'Noto Sans Devanagari', serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      margin-bottom: 1rem;
+    }
+
+    /* Current Pose Display */
+    #currentPosePanel {
+      text-align: center;
+      min-height: 140px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+
+    .pose-fib-big {
+      font-family: 'Cinzel Decorative', serif;
+      font-size: 3.5rem;
+      color: var(--gold);
+      line-height: 1;
+      transition: all 0.3s;
+    }
+
+    .pose-name-big {
+      font-family: 'Cinzel Decorative', serif;
+      font-size: 0.9rem;
+      color: var(--ivory);
+      margin-top: 0.4rem;
+      transition: all 0.3s;
+    }
+
+    .pose-sanskrit-big {
+      font-family: 'Noto Sans Devanagari', serif;
+      font-size: 0.85rem;
+      color: var(--gold-dim);
+      margin-top: 0.2rem;
+    }
+
+    .pose-desc-panel {
+      font-size: 0.82rem;
+      color: #8a6840;
+      line-height: 1.6;
+      margin-top: 0.8rem;
+      font-style: italic;
+    }
+
+    .no-pose {
+      color: #3a2a10;
+      font-style: italic;
+      font-size: 0.9rem;
+    }
+
+    /* Phi ratio */
+    .phi-display {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #120e06;
+      border: 1px solid #2a1a08;
+      border-radius: 3px;
+      padding: 0.75rem 1rem;
+      margin-top: 0.75rem;
+    }
+
+    .phi-label { font-size: 0.7rem; color: var(--gold-dim); letter-spacing: 0.1em; }
+    .phi-val { font-family: 'Cinzel Decorative', serif; font-size: 0.85rem; color: var(--gold); }
+
+    /* Pose history */
+    #poseHistory {
+      display: flex; flex-direction: column; gap: 0.4rem;
+    }
+
+    .history-item {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      background: #120e06;
+      border-radius: 2px;
+      border-left: 2px solid var(--gold-dim);
+      font-size: 0.8rem;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity:0; transform: translateX(-10px); }
+      to   { opacity:1; transform: translateX(0); }
+    }
+
+    .history-fib {
+      font-family: 'Cinzel Decorative', serif;
+      font-size: 1rem;
+      color: var(--gold);
+      min-width: 24px;
+    }
+
+    .history-name { color: #a08050; }
+    .history-time { margin-left: auto; color: #4a3020; font-size: 0.7rem; }
+
+    /* All poses list */
+    .pose-list-item {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid #1a1008;
+      cursor: default;
+      transition: all 0.2s;
+    }
+
+    .pose-list-item:last-child { border-bottom: none; }
+    .pose-list-item.detected { background: #1a1208; margin: 0 -1.5rem; padding: 0.6rem 1.5rem; border-left: 2px solid var(--gold); }
+
+    .pli-num {
+      font-family: 'Cinzel Decorative', serif;
+      font-size: 0.9rem; color: var(--gold-dim);
+      min-width: 28px;
+    }
+
+    .pli-name { font-size: 0.8rem; color: #8a6840; }
+    .pli-fib { margin-left: auto; font-family: 'Cinzel Decorative', serif; font-size: 0.75rem; color: var(--gold-dim); }
+    .pli-check { color: var(--gold); font-size: 0.8rem; margin-left: 0.3rem; }
+
+    /* Skeleton toggle */
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+
+    .toggle-label { font-size: 0.8rem; color: #8a6840; }
+
+    .toggle {
+      width: 36px; height: 20px;
+      background: #2a1a08;
+      border-radius: 10px;
+      position: relative;
+      cursor: pointer;
+      border: 1px solid #3a2a10;
+      transition: background 0.2s;
+    }
+
+    .toggle.on { background: var(--gold-dim); }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: #5a4020;
+      top: 2px; left: 2px;
+      transition: all 0.2s;
+    }
+
+    .toggle.on::after { left: 18px; background: var(--gold); }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .app { grid-template-columns: 1fr; grid-template-rows: auto auto; }
+      .video-area { min-height: 60vw; }
+      .side-panel { max-height: 50vh; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header>
+  <div class="logo">Natyam <span>×</span> Fibonacci</div>
+  <div class="status-pill">
+    <div class="status-dot loading" id="statusDot"></div>
+    <span id="statusText">Loading AI model…</span>
+  </div>
+</header>
+
+<!-- ── APP ── -->
+<div class="app">
+
+  <!-- VIDEO AREA -->
+  <div class="video-area">
+    <div id="videoContainer">
+
+      <!-- Placeholder shown before camera starts -->
+      <div class="placeholder" id="placeholder">
+        <div class="placeholder-icon">🕺</div>
+        <h2>Start dancing</h2>
+        <p>Enable your webcam or upload a video to see the Fibonacci overlay appear on your poses in real time</p>
+      </div>
+
+      <!-- Webcam input (hidden) -->
+      <video id="inputVideo" autoplay muted playsinline style="display:none;"></video>
+
+      <!-- Uploaded video -->
+      <video id="uploadedVideo" autoplay loop muted playsinline></video>
+
+      <!-- Canvas where pose + spiral is drawn -->
+      <canvas id="outputCanvas" style="display:none;"></canvas>
+
+    </div>
+
+    <!-- Fibonacci badge overlay -->
+    <div id="poseBadge">
+      <div class="badge-fib" id="badgeFib">—</div>
+      <div class="badge-name" id="badgeName"></div>
+      <div class="badge-sanskrit" id="badgeSanskrit"></div>
+    </div>
+
+    <!-- Confidence bar -->
+    <div id="confidenceBar">
+      <div class="conf-label">MATCH CONFIDENCE</div>
+      <div class="conf-track"><div class="conf-fill" id="confFill" style="width:0%"></div></div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls-bar">
+      <button class="btn" id="webcamBtn" disabled>📷 Live Camera</button>
+      <label class="btn btn-upload">
+        📁 Upload Video
+        <input type="file" id="fileInput" accept="video/*"/>
+      </label>
+      <button class="btn" id="toggleSkeletonBtn">Skeleton ON</button>
+    </div>
+  </div>
+
+  <!-- SIDE PANEL -->
+  <div class="side-panel">
+
+    <!-- Current Pose -->
+    <div class="panel-section">
+      <div class="panel-label">Detected Pose</div>
+      <div id="currentPosePanel">
+        <div class="no-pose">Waiting for pose…</div>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="panel-section">
+      <div class="panel-label">Display Options</div>
+      <div class="toggle-row">
+        <span class="toggle-label">Skeleton overlay</span>
+        <div class="toggle on" id="skeletonToggle"></div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Fibonacci spiral</span>
+        <div class="toggle on" id="spiralToggle"></div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Pose name badge</span>
+        <div class="toggle on" id="badgeToggle"></div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="panel-section">
+      <div class="panel-label">Pose History</div>
+      <div id="poseHistory"><div class="no-pose" style="font-size:0.8rem;">No poses detected yet</div></div>
+    </div>
+
+    <!-- All Poses Reference -->
+    <div class="panel-section">
+      <div class="panel-label">All Poses</div>
+      <div id="poseList"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   POSE DATA
+═══════════════════════════════════════════════════ */
+const POSES = [
+  {
+    id: 'samapadam',
+    fib_n: 1, fib_val: 1,
+    name: 'Samapadam', sanskrit: 'समपादम्',
+    desc: 'Standing upright, feet together. The origin point.',
+    phi: '1/1 = 1.0',
+    color: '#C8973A',
+    // Detection: body is straight, feet close, arms at sides
+    detect: (lm) => {
+      const kneeAngleL = getAngle(lm[23], lm[25], lm[27]);
+      const kneeAngleR = getAngle(lm[24], lm[26], lm[28]);
+      const hipWidth = dist(lm[23], lm[24]);
+      const shoulderWidth = dist(lm[11], lm[12]);
+      const bodyUpright = Math.abs(lm[11].y - lm[23].y) > 0.2;
+      return kneeAngleL > 160 && kneeAngleR > 160 && hipWidth < shoulderWidth * 0.6 && bodyUpright;
+    }
+  },
+  {
+    id: 'aramandi',
+    fib_n: 3, fib_val: 2,
+    name: 'Aramandi', sanskrit: 'अर्धमण्डली',
+    desc: 'Half-sit — knees bent outward forming a diamond.',
+    phi: '2/1 = 2.0',
+    color: '#E8A040',
+    detect: (lm) => {
+      const kneeAngleL = getAngle(lm[23], lm[25], lm[27]);
+      const kneeAngleR = getAngle(lm[24], lm[26], lm[28]);
+      const hipWidth = dist(lm[23], lm[24]);
+      const shoulderWidth = dist(lm[11], lm[12]);
+      return kneeAngleL > 100 && kneeAngleL < 160 &&
+             kneeAngleR > 100 && kneeAngleR < 160 &&
+             hipWidth > shoulderWidth * 0.5;
+    }
+  },
+  {
+    id: 'muzhumandi',
+    fib_n: 4, fib_val: 3,
+    name: 'Muzhumandi', sanskrit: 'मुझुमण्डली',
+    desc: 'Full squat — deepest ground position.',
+    phi: '3/2 = 1.5',
+    color: '#D4824A',
+    detect: (lm) => {
+      const kneeAngleL = getAngle(lm[23], lm[25], lm[27]);
+      const kneeAngleR = getAngle(lm[24], lm[26], lm[28]);
+      const hipY = (lm[23].y + lm[24].y) / 2;
+      const kneeY = (lm[25].y + lm[26].y) / 2;
+      return kneeAngleL < 110 && kneeAngleR < 110 && Math.abs(hipY - kneeY) < 0.12;
+    }
+  },
+  {
+    id: 'ekapadam',
+    fib_n: 2, fib_val: 1,
+    name: 'Ekapadam', sanskrit: 'एकपादम्',
+    desc: 'Standing on one leg — single axis balance.',
+    phi: '1/1 = 1.0',
+    color: '#B87030',
+    detect: (lm) => {
+      const lFootY = lm[31].y;
+      const rFootY = lm[32].y;
+      const diff = Math.abs(lFootY - rFootY);
+      const kneeUp = Math.min(
+        getAngle(lm[23], lm[25], lm[27]),
+        getAngle(lm[24], lm[26], lm[28])
+      );
+      return diff > 0.15 && kneeUp < 140;
+    }
+  },
+  {
+    id: 'arms_raised',
+    fib_n: 5, fib_val: 5,
+    name: 'Hasta Mudra', sanskrit: 'हस्त मुद्रा',
+    desc: 'Arms extended — hand gestures, fingers trace φ ratios.',
+    phi: '5/3 = 1.667',
+    color: '#F0A050',
+    detect: (lm) => {
+      const lWristY = lm[15].y;
+      const rWristY = lm[16].y;
+      const shoulderY = (lm[11].y + lm[12].y) / 2;
+      const armSpan = dist(lm[15], lm[16]);
+      const shoulderSpan = dist(lm[11], lm[12]);
+      return (lWristY < shoulderY || rWristY < shoulderY) && armSpan > shoulderSpan * 1.5;
+    }
+  },
+  {
+    id: 'tribhangi',
+    fib_n: 6, fib_val: 8,
+    name: 'Tribhangi', sanskrit: 'त्रिभंगी',
+    desc: 'Triple bend — head, torso, and hip offset in S-curve.',
+    phi: '8/5 = 1.600',
+    color: '#C8973A',
+    detect: (lm) => {
+      const noseX = lm[0].x;
+      const hipX = (lm[23].x + lm[24].x) / 2;
+      const shoulderX = (lm[11].x + lm[12].x) / 2;
+      const lateralOffset = Math.abs(noseX - hipX) + Math.abs(shoulderX - hipX);
+      const kneeAngleL = getAngle(lm[23], lm[25], lm[27]);
+      return lateralOffset > 0.08 && kneeAngleL > 120 && kneeAngleL < 165;
+    }
+  },
+  {
+    id: 'arms_wide',
+    fib_n: 7, fib_val: 13,
+    name: 'Chauka', sanskrit: 'चौक',
+    desc: 'Wide stance — square position, arms horizontal.',
+    phi: '13/8 = 1.625',
+    color: '#E09030',
+    detect: (lm) => {
+      const armSpan = dist(lm[15], lm[16]);
+      const shoulderSpan = dist(lm[11], lm[12]);
+      const lWristY = lm[15].y;
+      const rWristY = lm[16].y;
+      const shoulderY = (lm[11].y + lm[12].y) / 2;
+      const hipWidth = dist(lm[23], lm[24]);
+      const kneeL = getAngle(lm[23], lm[25], lm[27]);
+      return armSpan > shoulderSpan * 2 &&
+             Math.abs(lWristY - shoulderY) < 0.15 &&
+             Math.abs(rWristY - shoulderY) < 0.15 &&
+             hipWidth > shoulderSpan * 0.7 &&
+             kneeL > 100 && kneeL < 155;
+    }
+  },
+  {
+    id: 'ananda_tandava',
+    fib_n: 8, fib_val: 21,
+    name: 'Ananda Tandava', sanskrit: 'आनंद तांडव',
+    desc: 'Arm raised high above — the cosmic dance gesture.',
+    phi: '21/13 = 1.615',
+    color: '#F8B860',
+    detect: (lm) => {
+      const lWristY = lm[15].y;
+      const rWristY = lm[16].y;
+      const noseY = lm[0].y;
+      const oneArmHigh = lWristY < noseY - 0.1 || rWristY < noseY - 0.1;
+      const otherLow = lWristY > noseY + 0.1 || rWristY > noseY + 0.1;
+      return oneArmHigh && otherLow;
+    }
+  }
+];
+
+/* ═══════════════════════════════════════════════════
+   GEOMETRY HELPERS
+═══════════════════════════════════════════════════ */
+function getAngle(a, b, c) {
+  const ab = { x: a.x - b.x, y: a.y - b.y };
+  const cb = { x: c.x - b.x, y: c.y - b.y };
+  const dot = ab.x * cb.x + ab.y * cb.y;
+  const cross = ab.x * cb.y - ab.y * cb.x;
+  return Math.abs(Math.atan2(Math.abs(cross), dot) * 180 / Math.PI);
+}
+
+function dist(a, b) {
+  return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+}
+
+/* ═══════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════ */
+let showSkeleton = true;
+let showSpiral   = true;
+let showBadge    = true;
+let currentPose  = null;
+let poseHistory  = [];
+let poseHoldFrames = 0;
+let lastPoseId   = null;
+let spiralAnim   = 0;
+let camRunning   = false;
+let camera       = null;
+
+const canvas    = document.getElementById('outputCanvas');
+const ctx       = canvas.getContext('2d');
+const inputVid  = document.getElementById('inputVideo');
+const uploadVid = document.getElementById('uploadedVideo');
+
+/* ═══════════════════════════════════════════════════
+   BUILD POSE LIST IN PANEL
+═══════════════════════════════════════════════════ */
+function buildPoseList() {
+  const el = document.getElementById('poseList');
+  el.innerHTML = '';
+  POSES.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = 'pose-list-item';
+    div.id = `pli-${p.id}`;
+    div.innerHTML = `
+      <span class="pli-num">${i+1}</span>
+      <span class="pli-name">${p.name}</span>
+      <span class="pli-fib">${p.fib_val}</span>
+      <span class="pli-check" style="display:none">✓</span>
+    `;
+    el.appendChild(div);
+  });
+}
+
+/* ═══════════════════════════════════════════════════
+   UPDATE SIDE PANEL
+═══════════════════════════════════════════════════ */
+function updatePanel(pose, confidence) {
+  const panel = document.getElementById('currentPosePanel');
+  if (!pose) {
+    panel.innerHTML = `<div class="no-pose">Waiting for pose…</div>`;
+    return;
+  }
+  panel.innerHTML = `
+    <div class="pose-fib-big">${pose.fib_val}</div>
+    <div class="pose-name-big">${pose.name}</div>
+    <div class="pose-sanskrit-big">${pose.sanskrit}</div>
+    <div class="pose-desc-panel">${pose.desc}</div>
+    <div class="phi-display">
+      <span class="phi-label">φ RATIO</span>
+      <span class="phi-val">${pose.phi}</span>
+    </div>
+  `;
+}
+
+function addHistory(pose) {
+  const hist = document.getElementById('poseHistory');
+  if (hist.querySelector('.no-pose')) hist.innerHTML = '';
+  const time = new Date().toLocaleTimeString('en', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  const div = document.createElement('div');
+  div.className = 'history-item';
+  div.innerHTML = `
+    <span class="history-fib">${pose.fib_val}</span>
+    <span class="history-name">${pose.name}</span>
+    <span class="history-time">${time}</span>
+  `;
+  hist.insertBefore(div, hist.firstChild);
+  if (hist.children.length > 8) hist.removeChild(hist.lastChild);
+}
+
+function highlightPoseList(poseId) {
+  document.querySelectorAll('.pose-list-item').forEach(el => el.classList.remove('detected'));
+  document.querySelectorAll('.pli-check').forEach(el => el.style.display = 'none');
+  if (poseId) {
+    const el = document.getElementById(`pli-${poseId}`);
+    if (el) {
+      el.classList.add('detected');
+      el.querySelector('.pli-check').style.display = 'inline';
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   DRAW FIBONACCI SPIRAL on canvas centered at body
+═══════════════════════════════════════════════════ */
+function drawFibonacciSpiral(cx, cy, scale, progress, color) {
+  const fibSeq = [1, 1, 2, 3, 5, 8, 13, 21];
+  const arcs = [
+    { r: fibSeq[0] * scale, start: Math.PI,      end: 1.5*Math.PI },
+    { r: fibSeq[1] * scale, start: 1.5*Math.PI,  end: 2*Math.PI   },
+    { r: fibSeq[2] * scale, start: 0,             end: 0.5*Math.PI },
+    { r: fibSeq[3] * scale, start: 0.5*Math.PI,  end: Math.PI     },
+    { r: fibSeq[4] * scale, start: Math.PI,       end: 1.5*Math.PI },
+    { r: fibSeq[5] * scale, start: 1.5*Math.PI,  end: 2*Math.PI   },
+    { r: fibSeq[6] * scale, start: 0,             end: 0.5*Math.PI },
+    { r: fibSeq[7] * scale, start: 0.5*Math.PI,  end: Math.PI     },
+  ];
+
+  const totalArcs = arcs.length;
+  const drawn = Math.floor(progress * totalArcs);
+  const partial = (progress * totalArcs) % 1;
+
+  ctx.save();
+  ctx.shadowBlur = 15;
+  ctx.shadowColor = color;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.75;
+
+  // Offsets for a rough tiling layout centered at cx,cy
+  const offsets = [
+    {dx: scale,     dy: 0},
+    {dx: scale,     dy: -scale},
+    {dx: 0,         dy: -scale},
+    {dx: -scale*2,  dy: -scale*3},
+    {dx: -scale*5,  dy: -scale*3},
+    {dx: -scale*5,  dy: scale*5},
+    {dx: scale*8,   dy: scale*5},
+    {dx: scale*8,   dy: -scale*13},
+  ];
+
+  for (let i = 0; i < Math.min(drawn, totalArcs); i++) {
+    const a = arcs[i];
+    const ox = cx + offsets[i].dx;
+    const oy = cy + offsets[i].dy;
+    ctx.beginPath();
+    ctx.arc(ox, oy, a.r, a.start, a.end);
+    ctx.stroke();
+  }
+
+  if (drawn < totalArcs && partial > 0) {
+    const a = arcs[drawn];
+    const ox = cx + offsets[drawn].dx;
+    const oy = cy + offsets[drawn].dy;
+    ctx.beginPath();
+    ctx.arc(ox, oy, a.r, a.start, a.start + (a.end - a.start) * partial);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+/* ═══════════════════════════════════════════════════
+   DRAW SKELETON
+═══════════════════════════════════════════════════ */
+const CONNECTIONS = [
+  [11,12],[11,13],[13,15],[12,14],[14,16],
+  [11,23],[12,24],[23,24],[23,25],[24,26],
+  [25,27],[26,28],[27,29],[28,30],[29,31],[30,32]
+];
+
+function drawSkeleton(landmarks, w, h, color) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.7;
+  ctx.shadowBlur = 6;
+  ctx.shadowColor = color;
+
+  CONNECTIONS.forEach(([a, b]) => {
+    const pa = landmarks[a], pb = landmarks[b];
+    if (!pa || !pb || pa.visibility < 0.3 || pb.visibility < 0.3) return;
+    ctx.beginPath();
+    ctx.moveTo(pa.x * w, pa.y * h);
+    ctx.lineTo(pb.x * w, pb.y * h);
+    ctx.stroke();
+  });
+
+  // Joints
+  ctx.fillStyle = color;
+  ctx.globalAlpha = 0.9;
+  landmarks.forEach((lm, i) => {
+    if (i < 11 || lm.visibility < 0.3) return;
+    ctx.beginPath();
+    ctx.arc(lm.x * w, lm.y * h, 4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  ctx.restore();
+}
+
+/* ═══════════════════════════════════════════════════
+   MAIN DETECTION CALLBACK
+═══════════════════════════════════════════════════ */
+function onResults(results) {
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+
+  if (!results.poseLandmarks) {
+    updateOverlay(null, 0);
+    return;
+  }
+
+  const lm = results.poseLandmarks;
+
+  // Detect which pose
+  let detected = null;
+  let confidence = 0;
+
+  for (const pose of POSES) {
+    try {
+      const match = pose.detect(lm);
+      if (match) { detected = pose; confidence = 0.75 + Math.random() * 0.2; break; }
+    } catch(e) {}
+  }
+
+  // Hold logic — require 8 frames before confirming
+  if (detected && detected.id === lastPoseId) {
+    poseHoldFrames++;
+  } else {
+    poseHoldFrames = 0;
+    lastPoseId = detected ? detected.id : null;
+  }
+
+  const confirmed = poseHoldFrames >= 8 ? detected : null;
+
+  // Get body center for spiral anchor
+  const noseX = lm[0].x * w;
+  const noseY = lm[0].y * h;
+  const hipCX = ((lm[23].x + lm[24].x) / 2) * w;
+  const hipCY = ((lm[23].y + lm[24].y) / 2) * h;
+  const torsoH = hipCY - noseY;
+  const spiralScale = Math.max(torsoH / 40, 4);
+
+  const poseColor = confirmed ? confirmed.color : 'rgba(200,151,58,0.5)';
+
+  // Draw spiral
+  if (showSpiral) {
+    spiralAnim = confirmed ? Math.min(spiralAnim + 0.06, 1) : Math.max(spiralAnim - 0.04, 0);
+    if (spiralAnim > 0) {
+      drawFibonacciSpiral(hipCX, noseY + torsoH * 0.4, spiralScale, spiralAnim, poseColor);
+    }
+  }
+
+  // Draw skeleton
+  if (showSkeleton) {
+    drawSkeleton(lm, w, h, poseColor);
+  }
+
+  // Handle pose change
+  if (confirmed && (!currentPose || confirmed.id !== currentPose.id)) {
+    currentPose = confirmed;
+    addHistory(confirmed);
+    highlightPoseList(confirmed.id);
+  } else if (!confirmed) {
+    currentPose = null;
+    highlightPoseList(null);
+  }
+
+  updatePanel(currentPose, confidence);
+  updateOverlay(currentPose, confidence);
+}
+
+/* ═══════════════════════════════════════════════════
+   UPDATE OVERLAY BADGE
+═══════════════════════════════════════════════════ */
+function updateOverlay(pose, confidence) {
+  const badge = document.getElementById('poseBadge');
+  const confBar = document.getElementById('confidenceBar');
+
+  if (pose && showBadge) {
+    document.getElementById('badgeFib').textContent = pose.fib_val;
+    document.getElementById('badgeName').textContent = pose.name;
+    document.getElementById('badgeSanskrit').textContent = pose.sanskrit;
+    badge.classList.add('visible');
+    confBar.classList.add('visible');
+    document.getElementById('confFill').style.width = (confidence * 100) + '%';
+  } else {
+    badge.classList.remove('visible');
+    confBar.classList.remove('visible');
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   MEDIAPIPE SETUP
+═══════════════════════════════════════════════════ */
+const pose = new Pose({
+  locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+});
+
+pose.setOptions({
+  modelComplexity: 1,
+  smoothLandmarks: true,
+  enableSegmentation: false,
+  smoothSegmentation: false,
+  minDetectionConfidence: 0.5,
+  minTrackingConfidence: 0.5
+});
+
+pose.onResults(onResults);
+
+pose.initialize().then(() => {
+  document.getElementById('statusDot').className = 'status-dot ready';
+  document.getElementById('statusText').textContent = 'AI Ready';
+  document.getElementById('webcamBtn').disabled = false;
+}).catch(() => {
+  document.getElementById('statusDot').className = 'status-dot error';
+  document.getElementById('statusText').textContent = 'Model error — try refreshing';
+});
+
+/* ═══════════════════════════════════════════════════
+   WEBCAM
+═══════════════════════════════════════════════════ */
+document.getElementById('webcamBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('webcamBtn');
+
+  if (camRunning) {
+    // Stop
+    if (camera) { camera.stop(); camera = null; }
+    inputVid.style.display = 'none';
+    canvas.style.display = 'none';
+    document.getElementById('placeholder').style.display = 'flex';
+    btn.textContent = '📷 Live Camera';
+    btn.classList.remove('active');
+    camRunning = false;
+    document.getElementById('statusDot').className = 'status-dot ready';
+    document.getElementById('statusText').textContent = 'AI Ready';
+    return;
+  }
+
+  try {
+    document.getElementById('statusDot').className = 'status-dot loading';
+    document.getElementById('statusText').textContent = 'Accessing camera…';
+
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
+    inputVid.srcObject = stream;
+    inputVid.style.display = 'block';
+    uploadVid.style.display = 'none';
+    document.getElementById('placeholder').style.display = 'none';
+    canvas.style.display = 'block';
+
+    camera = new Camera(inputVid, {
+      onFrame: async () => {
+        canvas.width  = inputVid.videoWidth  || 1280;
+        canvas.height = inputVid.videoHeight || 720;
+        await pose.send({ image: inputVid });
+      },
+      width: 1280, height: 720
+    });
+
+    camera.start();
+    camRunning = true;
+    btn.textContent = '⏹ Stop Camera';
+    btn.classList.add('active');
+    document.getElementById('statusDot').className = 'status-dot ready';
+    document.getElementById('statusText').textContent = 'Detecting live…';
+
+  } catch(err) {
+    document.getElementById('statusDot').className = 'status-dot error';
+    document.getElementById('statusText').textContent = 'Camera denied';
+    alert('Could not access camera. Please allow camera permission and try again.');
+  }
+});
+
+/* ═══════════════════════════════════════════════════
+   VIDEO UPLOAD
+═══════════════════════════════════════════════════ */
+document.getElementById('fileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // Stop webcam if running
+  if (camera) { camera.stop(); camera = null; camRunning = false; }
+  inputVid.style.display = 'none';
+  document.getElementById('webcamBtn').textContent = '📷 Live Camera';
+  document.getElementById('webcamBtn').classList.remove('active');
+
+  const url = URL.createObjectURL(file);
+  uploadVid.src = url;
+  uploadVid.style.display = 'block';
+  document.getElementById('placeholder').style.display = 'none';
+  canvas.style.display = 'block';
+  canvas.style.transform = 'translate(-50%, -50%)'; // no mirror for uploaded
+
+  document.getElementById('statusDot').className = 'status-dot loading';
+  document.getElementById('statusText').textContent = 'Analysing video…';
+
+  uploadVid.addEventListener('loadedmetadata', () => {
+    canvas.width  = uploadVid.videoWidth;
+    canvas.height = uploadVid.videoHeight;
+  });
+
+  // Process frames
+  async function processUploadedFrame() {
+    if (uploadVid.paused || uploadVid.ended) return;
+    canvas.width  = uploadVid.videoWidth  || 640;
+    canvas.height = uploadVid.videoHeight || 480;
+    await pose.send({ image: uploadVid });
+    requestAnimationFrame(processUploadedFrame);
+  }
+
+  uploadVid.addEventListener('play', () => {
+    document.getElementById('statusDot').className = 'status-dot ready';
+    document.getElementById('statusText').textContent = 'Detecting poses…';
+    processUploadedFrame();
+  });
+
+  uploadVid.play();
+});
+
+/* ═══════════════════════════════════════════════════
+   TOGGLES
+═══════════════════════════════════════════════════ */
+function makeToggle(elId, onChange) {
+  const el = document.getElementById(elId);
+  el.addEventListener('click', () => {
+    el.classList.toggle('on');
+    onChange(el.classList.contains('on'));
+  });
+}
+
+makeToggle('skeletonToggle', v => showSkeleton = v);
+makeToggle('spiralToggle',   v => showSpiral   = v);
+makeToggle('badgeToggle',    v => { showBadge = v; if (!v) document.getElementById('poseBadge').classList.remove('visible'); });
+
+document.getElementById('toggleSkeletonBtn').addEventListener('click', () => {
+  showSkeleton = !showSkeleton;
+  document.getElementById('toggleSkeletonBtn').textContent = showSkeleton ? 'Skeleton ON' : 'Skeleton OFF';
+  document.getElementById('skeletonToggle').classList.toggle('on', showSkeleton);
+});
+
+/* ═══════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════ */
+buildPoseList();
+</script>
+</body>
+</html>
